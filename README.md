@@ -50,7 +50,7 @@ BeatWave 2 is a Spotify-inspired local Android music player built with Kotlin an
 | Language | Kotlin (`2.4.21`) |
 | UI | Jetpack Compose, Material 3, Coil, Navigation Compose |
 | Architecture | MVVM with `ViewModel`, `StateFlow`, Repository pattern, manual DI (`AppContainer`) |
-| Audio | Jetpack Media3 (`media3-exoplayer`, `media3-session`, `media3-common` `1.11.1`) |
+| Audio | Jetpack Media3 (`media3-exoplayer`, `media3-session`, `media3-common` `1.5.1`) |
 | Local DB | Room (`2.7.0` with KSP) & Jetpack DataStore Preferences |
 | Auth | Firebase Authentication + Jetpack Credential Manager (Google Sign-In) |
 | Cloud | Cloud Firestore (offline-first sync under `users/{uid}/...`) |

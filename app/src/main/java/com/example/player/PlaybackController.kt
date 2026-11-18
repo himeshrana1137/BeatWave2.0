@@ -58,7 +58,9 @@ class PlaybackController(
     private var controller: MediaController? = null
 
     private var songCatalogByKey: Map<String, Song> = emptyMap()
-    private var lastCountedSongKey: String? = null
+    private var currentSessionSongKey: String? = null
+    private var currentSessionPlayedMs: Long = 0L
+    private var currentSessionCounted: Boolean = false
     private var lastPlaybackRealtimeMs: Long = 0L
     private var accumulatedListenMs: Long = 0L
     private var activeTrackedSong: Song? = null
@@ -68,16 +70,22 @@ class PlaybackController(
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             val nowRealtime = SystemClock.elapsedRealtime()
             if (isPlaying) {
-                lastPlaybackRealtimeMs = nowRealtime
                 val song = resolveCurrentSong()
-                if (song != null && song.songKey != lastCountedSongKey) {
-                    lastCountedSongKey = song.songKey
-                    recordPlayIncrement(song)
+                if (song != null && song.songKey != currentSessionSongKey) {
+                    resetPlaySession(song.songKey)
                 }
                 activeTrackedSong = song
+                lastPlaybackRealtimeMs = nowRealtime
                 startTicker()
             } else {
+                val song = activeTrackedSong ?: resolveCurrentSong()
+                if (lastPlaybackRealtimeMs > 0L && song != null) {
+                    val delta = (nowRealtime - lastPlaybackRealtimeMs).coerceIn(0L, 2000L)
+                    currentSessionPlayedMs += delta
+                    controller?.let { maybeIncrementPlayCount(song, it) }
+                }
                 flushListeningAccumulator(nowRealtime)
+                lastPlaybackRealtimeMs = 0L
                 stopTicker()
             }
             syncStateFromPlayer()
@@ -85,17 +93,38 @@ class PlaybackController(
 
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
             val nowRealtime = SystemClock.elapsedRealtime()
+            val previousSong = activeTrackedSong
+            if (lastPlaybackRealtimeMs > 0L && previousSong != null && controller?.isPlaying == true) {
+                val delta = (nowRealtime - lastPlaybackRealtimeMs).coerceIn(0L, 2000L)
+                currentSessionPlayedMs += delta
+                controller?.let { maybeIncrementPlayCount(previousSong, it) }
+            }
             flushListeningAccumulator(nowRealtime)
             val newSong = resolveCurrentSong()
             activeTrackedSong = newSong
-            if (controller?.isPlaying == true && newSong != null) {
-                lastPlaybackRealtimeMs = nowRealtime
-                lastCountedSongKey = newSong.songKey
-                recordPlayIncrement(newSong)
-            } else {
-                lastCountedSongKey = null
-            }
+            resetPlaySession(newSong?.songKey)
+            lastPlaybackRealtimeMs = if (controller?.isPlaying == true) nowRealtime else 0L
             syncStateFromPlayer()
+        }
+
+        override fun onPositionDiscontinuity(
+            oldPosition: Player.PositionInfo,
+            newPosition: Player.PositionInfo,
+            reason: Int
+        ) {
+            if (oldPosition.mediaItemIndex == newPosition.mediaItemIndex) {
+                val looped = reason == Player.DISCONTINUITY_REASON_AUTO_TRANSITION
+                val restartedFromBeginning =
+                    reason == Player.DISCONTINUITY_REASON_SEEK &&
+                        newPosition.positionMs < 1500L &&
+                        oldPosition.positionMs >= 1500L
+                if (looped || restartedFromBeginning) {
+                    resetPlaySession(resolveCurrentSong()?.songKey)
+                    if (controller?.isPlaying == true) {
+                        lastPlaybackRealtimeMs = SystemClock.elapsedRealtime()
+                    }
+                }
+            }
         }
 
         override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
@@ -122,9 +151,13 @@ class PlaybackController(
                 controller = mc
                 mc.addListener(playerListener)
                 syncStateFromPlayer()
+                val song = resolveCurrentSong()
+                if (song != null && song.songKey != currentSessionSongKey) {
+                    resetPlaySession(song.songKey)
+                }
                 if (mc.isPlaying) {
                     lastPlaybackRealtimeMs = SystemClock.elapsedRealtime()
-                    activeTrackedSong = resolveCurrentSong()
+                    activeTrackedSong = song
                     startTicker()
                 }
             } catch (_: Exception) {
@@ -156,6 +189,7 @@ class PlaybackController(
     fun playQueue(songs: List<Song>, startIndex: Int = 0) {
         if (songs.isEmpty()) return
         val safeIndex = startIndex.coerceIn(0, songs.lastIndex)
+        resetPlaySession(songs[safeIndex].songKey)
         scope.launch {
             val mc = awaitController() ?: return@launch
             updateCatalog(songs)
@@ -238,10 +272,12 @@ class PlaybackController(
         val mc = controller ?: return
         if (mc.currentPosition > 3000L) {
             mc.seekTo(0L)
+            resetPlaySession(resolveCurrentSong()?.songKey)
         } else if (mc.hasPreviousMediaItem()) {
             mc.seekToPreviousMediaItem()
         } else {
             mc.seekTo(0L)
+            resetPlaySession(resolveCurrentSong()?.songKey)
         }
     }
 
@@ -278,8 +314,14 @@ class PlaybackController(
                     if (lastPlaybackRealtimeMs > 0L) {
                         val delta = (nowRealtime - lastPlaybackRealtimeMs).coerceIn(0L, 2000L)
                         accumulatedListenMs += delta
+                        currentSessionPlayedMs += delta
                     }
                     lastPlaybackRealtimeMs = nowRealtime
+
+                    val song = activeTrackedSong ?: resolveCurrentSong()
+                    if (song != null) {
+                        maybeIncrementPlayCount(song, mc)
+                    }
 
                     if (accumulatedListenMs >= 5000L) {
                         flushListeningAccumulator(nowRealtime)
@@ -299,10 +341,29 @@ class PlaybackController(
         tickerJob = null
     }
 
+    private fun resetPlaySession(songKey: String?) {
+        currentSessionSongKey = songKey
+        currentSessionPlayedMs = 0L
+        currentSessionCounted = false
+    }
+
+    private fun maybeIncrementPlayCount(song: Song, player: Player) {
+        if (currentSessionCounted) return
+        val durationMs = player.duration.takeIf { it > 0L } ?: song.durationMs
+        if (durationMs <= 0L) return
+        if (currentSessionPlayedMs >= durationMs / 2L) {
+            currentSessionCounted = true
+            recordPlayIncrement(song)
+        }
+    }
+
     private fun recordPlayIncrement(song: Song) {
         val now = System.currentTimeMillis()
         scope.launch(Dispatchers.IO) {
             statsDao.incrementPlayCount(song, now)
+            if (Firebase.auth.currentUser != null) {
+                cloudSync.syncAll()
+            }
         }
     }
 

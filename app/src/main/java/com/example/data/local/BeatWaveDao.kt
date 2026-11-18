@@ -178,7 +178,7 @@ interface StatsDao {
                 title = song.title,
                 artist = song.artist,
                 durationMs = song.durationMs,
-                playCount = 1L,
+                playCount = 0L,
                 listenedMs = deltaMs,
                 lastPlayedAtMs = nowMs
             )
@@ -195,7 +195,7 @@ interface StatsDao {
             ListeningSummaryEntity(
                 id = 1,
                 totalListeningMs = deltaMs,
-                totalPlays = 1L,
+                totalPlays = 0L,
                 updatedAtMs = nowMs
             )
         } else {
