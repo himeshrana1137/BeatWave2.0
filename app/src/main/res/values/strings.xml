@@ -1,0 +1,24 @@
+<resources>
+    <string name="app_name">BeatWave 2</string>
+    <string name="tagline">Your local music, elevated.</string>
+    <string name="continue_with_google">Continue with Google</string>
+    <string name="skip_for_now">Skip for now</string>
+    <string name="offline_sync_notice">Cloud sync only works when logged in</string>
+    <string name="tab_songs">Songs</string>
+    <string name="tab_albums">Albums</string>
+    <string name="tab_artists">Artists</string>
+    <string name="tab_playlists">Playlists</string>
+    <string name="nav_library">Library</string>
+    <string name="nav_stats">Stats</string>
+    <string name="nav_profile">Profile</string>
+    <string name="search_hint">Search songs or artists...</string>
+    <string name="permission_title">Access Your Local Music</string>
+    <string name="permission_rationale">BeatWave 2 scans audio files stored on your device so you can build playlists and listen offline.</string>
+    <string name="grant_permission">Allow Audio Access</string>
+    <string name="create_playlist">Create Playlist</string>
+    <string name="rename_playlist">Rename Playlist</string>
+    <string name="delete_playlist">Delete Playlist</string>
+    <string name="no_playlists_title">No playlists yet</string>
+    <string name="no_playlists_subtitle">Tap + to create a playlist or long-press any song to add tracks.</string>
+    <string name="logout">Logout</string>
+</resources>

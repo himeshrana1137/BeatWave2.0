@@ -1,0 +1,218 @@
+{
+  "entities": {
+    "Playlist": {
+      "title": "Playlist",
+      "description": "A user-created local music playlist synced to the cloud.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated Firebase UID of the playlist owner."
+        },
+        "name": {
+          "type": "string",
+          "description": "User-assigned playlist name (1-100 characters)."
+        },
+        "createdAtMs": {
+          "type": "integer",
+          "description": "Client creation epoch timestamp in milliseconds."
+        },
+        "updatedAtMs": {
+          "type": "integer",
+          "description": "Client last modification epoch timestamp in milliseconds."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() on creation."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() on writes."
+        }
+      },
+      "required": ["userId", "name", "createdAtMs", "updatedAtMs", "createdAt", "updatedAt"]
+    },
+    "PlaylistTrack": {
+      "title": "PlaylistTrack",
+      "description": "An ordered song entry inside a user playlist.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated Firebase UID of the owner."
+        },
+        "playlistId": {
+          "type": "string",
+          "description": "Parent playlist document ID."
+        },
+        "songKey": {
+          "type": "string",
+          "description": "Deterministic song identifier derived from title, artist, and duration."
+        },
+        "mediaStoreId": {
+          "type": "integer",
+          "description": "Local Android MediaStore audio ID."
+        },
+        "title": {
+          "type": "string",
+          "description": "Song title."
+        },
+        "artist": {
+          "type": "string",
+          "description": "Song artist name."
+        },
+        "album": {
+          "type": "string",
+          "description": "Song album name."
+        },
+        "durationMs": {
+          "type": "integer",
+          "description": "Song duration in milliseconds."
+        },
+        "position": {
+          "type": "integer",
+          "description": "Zero-based custom sort index inside the playlist."
+        },
+        "addedAtMs": {
+          "type": "integer",
+          "description": "Epoch timestamp when the track was added."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() on creation."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() on writes."
+        }
+      },
+      "required": [
+        "userId",
+        "playlistId",
+        "songKey",
+        "mediaStoreId",
+        "title",
+        "artist",
+        "album",
+        "durationMs",
+        "position",
+        "addedAtMs",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "SongStat": {
+      "title": "SongStat",
+      "description": "Listening statistics for a single song.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated Firebase UID of the owner."
+        },
+        "songKey": {
+          "type": "string",
+          "description": "Deterministic song identifier matching document ID."
+        },
+        "title": {
+          "type": "string",
+          "description": "Song title."
+        },
+        "artist": {
+          "type": "string",
+          "description": "Song artist."
+        },
+        "durationMs": {
+          "type": "integer",
+          "description": "Song duration in milliseconds."
+        },
+        "playCount": {
+          "type": "integer",
+          "description": "Total number of times the song was played."
+        },
+        "listenedMs": {
+          "type": "integer",
+          "description": "Total accumulated listening time in milliseconds for this song."
+        },
+        "lastPlayedAtMs": {
+          "type": "integer",
+          "description": "Last played epoch timestamp in milliseconds."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() on creation."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() on writes."
+        }
+      },
+      "required": [
+        "userId",
+        "songKey",
+        "title",
+        "artist",
+        "durationMs",
+        "playCount",
+        "listenedMs",
+        "lastPlayedAtMs",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "ListeningSummary": {
+      "title": "ListeningSummary",
+      "description": "Aggregate listening statistics summary for a user.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated Firebase UID of the owner."
+        },
+        "totalListeningMs": {
+          "type": "integer",
+          "description": "Total accumulated listening duration in milliseconds."
+        },
+        "totalPlays": {
+          "type": "integer",
+          "description": "Total number of song plays."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() on creation."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() on writes."
+        }
+      },
+      "required": ["userId", "totalListeningMs", "totalPlays", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/playlists/{playlistId}": {
+      "schema": { "$ref": "#/entities/Playlist" },
+      "description": "User-owned music playlists."
+    },
+    "/users/{userId}/playlists/{playlistId}/tracks/{trackId}": {
+      "schema": { "$ref": "#/entities/PlaylistTrack" },
+      "description": "Ordered tracks belonging to a user playlist."
+    },
+    "/users/{userId}/songStats/{songKey}": {
+      "schema": { "$ref": "#/entities/SongStat" },
+      "description": "Per-song play count and listening time statistics."
+    },
+    "/users/{userId}/meta/{metaId}": {
+      "schema": { "$ref": "#/entities/ListeningSummary" },
+      "description": "Aggregate user listening statistics summary."
+    }
+  }
+}

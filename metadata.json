@@ -1,0 +1,6 @@
+{
+  "name": "BeatWave 2",
+  "description": "Local music player with custom playlists, listening stats, Media3 background playback, and optional Google cloud sync.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
